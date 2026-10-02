@@ -1,0 +1,68 @@
+token: "__LICHESS_TOKEN__"
+url: "https://lichess.org/"
+
+engine:
+  dir: "./engines/"
+  name: "stockfish"
+  protocol: "uci"
+  ponder: true
+  draw_or_resign:
+    resign_enabled: true
+    offer_draw_enabled: true
+  uci_options:
+    Move Overhead: 500
+    Threads: 2
+    Hash: 256
+    UCI_LimitStrength: true
+    UCI_Elo: 2500
+    UCI_ShowWDL: true
+
+abort_time: 30
+fake_think_time: false
+rate_limiting_delay: 0
+move_overhead: 2000
+max_takebacks_accepted: 0
+quit_after_all_games_finish: false
+
+correspondence:
+  move_time: 60
+  checkin_period: 300
+  disconnect_time: 150
+  ponder: false
+
+challenge:
+  concurrency: 1
+  games_reserved_for_humans: 0
+  sort_by: "best"
+  preference: "none"
+  accept_bot: true
+  only_bot: true
+  min_increment: 0
+  max_increment: 20
+  min_base: 0
+  max_base: 1800
+  variants:
+    - standard
+  time_controls:
+    - blitz
+  modes:
+    - rated
+  bullet_requires_increment: false
+  max_simultaneous_games_per_user: 5
+
+matchmaking:
+  allow_matchmaking: true
+  allow_during_games: false
+  challenge_variant: "random"
+  challenge_timeout: 1
+  challenge_initial_time:
+    - 60
+    - 180
+  challenge_increment:
+    - 1
+    - 2
+  opponent_rating_difference: 300
+  rating_preference: "none"
+  challenge_mode: "random"
+  challenge_filter: none
+  include_challenge_block_list: false
