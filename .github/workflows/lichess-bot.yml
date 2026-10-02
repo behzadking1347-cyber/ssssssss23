@@ -1,0 +1,60 @@
+name: Lichess Bot
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 6 * * *'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: lichess-bot
+  cancel-in-progress: false
+
+jobs:
+  play:
+    runs-on: ubuntu-latest
+    timeout-minutes: 358
+    steps:
+      - name: Check the bot token secret
+        env:
+          BOT_TOKEN: ${{ secrets.LICHESS_BOT_TOKEN }}
+        run: |
+          if [ -z "$BOT_TOKEN" ]; then
+            echo ::error::Add a repository secret named LICHESS_BOT_TOKEN in Settings -> Secrets and variables -> Actions
+            exit 1
+          fi
+
+      - name: Get the project
+        uses: actions/checkout@v4
+
+      - name: Get the lichess-bot code
+        run: git clone --depth 1 https://github.com/lichess-bot-devs/lichess-bot.git lichess-bot
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r lichess-bot/requirements.txt
+
+      - name: Install the chess engine
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq stockfish
+          mkdir -p lichess-bot/engines
+          cp "$(dpkg -L stockfish | grep -E '/bin/stockfish$' | head -1)" lichess-bot/engines/stockfish
+          chmod +x lichess-bot/engines/stockfish
+          lichess-bot/engines/stockfish --version | head -1
+
+      - name: Write the config file with the token
+        env:
+          BOT_TOKEN: ${{ secrets.LICHESS_BOT_TOKEN }}
+        run: |
+          sed -i "s/__LICHESS_TOKEN__/$BOT_TOKEN/" config.yml
+          cp config.yml lichess-bot/config.yml
+
+      - name: Play chess
+        working-directory: lichess-bot
+        run: timeout --signal=INT --kill-after=120 21000 python lichess-bot.py -v || [ $? -eq 124 ]
