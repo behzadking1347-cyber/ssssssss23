@@ -44,9 +44,9 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y -qq stockfish
           mkdir -p lichess-bot/engines
-          cp "$(dpkg -L stockfish | grep -E '/bin/stockfish$' | head -1)" lichess-bot/engines/stockfish
+          cp /usr/games/stockfish lichess-bot/engines/stockfish
           chmod +x lichess-bot/engines/stockfish
-          lichess-bot/engines/stockfish --version | head -1
+          printf "uci\nquit\n" | lichess-bot/engines/stockfish
 
       - name: Write the config file with the token
         env:
