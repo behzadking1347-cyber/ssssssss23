@@ -51,7 +51,7 @@ challenge:
   max_simultaneous_games_per_user: 5
 
 matchmaking:
-  allow_matchmaking: true
+  allow_matchmaking: false
   allow_during_games: false
   challenge_variant: "random"
   challenge_timeout: 1
