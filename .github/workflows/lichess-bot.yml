@@ -2,9 +2,6 @@ name: Lichess Bot
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: '0 6 * * *'
-    - cron: '0 14 * * *'
 
 permissions:
   contents: read
@@ -16,7 +13,7 @@ concurrency:
 jobs:
   play:
     runs-on: ubuntu-latest
-    timeout-minutes: 250
+    timeout-minutes: 260
     steps:
       - name: Check the bot token secret
         env:
@@ -58,4 +55,10 @@ jobs:
 
       - name: Play chess
         working-directory: lichess-bot
-        run: timeout --signal=INT --kill-after=120 14100 python lichess-bot.py -v || [ $? -eq 124 ]
+        run: |
+          deadline=$(( $(date +%s) + 14760 ))
+          while [ "$(date +%s)" -lt "$deadline" ]; do
+            remaining=$(( deadline - $(date +%s) ))
+            timeout --signal=INT --kill-after=120 "$remaining" python lichess-bot.py -v || true
+            sleep 10
+          done
