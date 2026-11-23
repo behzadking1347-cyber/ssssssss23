@@ -1,0 +1,82 @@
+name: Lichess Bot 8
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: lichess-bot-8
+  cancel-in-progress: false
+
+jobs:
+  play:
+    runs-on: ubuntu-latest
+    timeout-minutes: 260
+    steps:
+      - name: Check the bot token secret
+        env:
+          BOT_TOKEN: ${{ secrets.LICHESS_BOT_TOKEN_8 }}
+        run: |
+          if [ -z "$BOT_TOKEN" ]; then
+            echo ::error::Add a repository secret named LICHESS_BOT_TOKEN_8 in Settings -> Secrets and variables -> Actions
+            exit 1
+          fi
+
+      - name: Get the project
+        uses: actions/checkout@v4
+
+      - name: Get the lichess-bot code
+        run: git clone --depth 1 https://github.com/lichess-bot-devs/lichess-bot.git lichess-bot
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r lichess-bot/requirements.txt
+
+      - name: Install the chess engine
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq stockfish
+          mkdir -p lichess-bot/engines
+          cp /usr/games/stockfish lichess-bot/engines/stockfish
+          chmod +x lichess-bot/engines/stockfish
+          printf "uci\nquit\n" | lichess-bot/engines/stockfish
+
+      - name: Write the config file with the token
+        env:
+          BOT_TOKEN: ${{ secrets.LICHESS_BOT_TOKEN_8 }}
+        run: |
+          sed -i "s/__LICHESS_TOKEN__/$BOT_TOKEN/" config-8.yml
+          cp config-8.yml lichess-bot/config.yml
+
+      - name: Join the tournament
+        env:
+          BOT_TOKEN: ${{ secrets.LICHESS_BOT_TOKEN_8 }}
+          TOURNAMENT_ID: "brBhnj34"
+        run: |
+          for attempt in 1 2 3; do
+            code=$(curl -s -o join.json -w "%{http_code}" -X POST "https://lichess.org/api/tournament/$TOURNAMENT_ID/join" -H "Authorization: Bearer $BOT_TOKEN")
+            echo "join attempt $attempt -> HTTP $code"; cat join.json; echo
+            if [ "$code" = "200" ] || [ "$code" = "400" ]; then break; fi
+            sleep 20
+          done
+
+      - name: Play chess
+        env:
+          TOURNAMENT_ID: "brBhnj34"
+        working-directory: lichess-bot
+        run: |
+          deadline=$(( $(date +%s) + 14760 ))
+          while [ "$(date +%s)" -lt "$deadline" ]; do
+            if [ -n "$TOURNAMENT_ID" ] && curl -s "https://lichess.org/api/tournament/$TOURNAMENT_ID" | grep -qE 'isFinished"?[[:space:]]*:[[:space:]]*true'; then
+              echo "Tournament is over - stopping the bot"
+              break
+            fi
+            remaining=$(( deadline - $(date +%s) ))
+            timeout --signal=INT --kill-after=120 "$remaining" python lichess-bot.py -v || true
+            sleep 10
+          done
