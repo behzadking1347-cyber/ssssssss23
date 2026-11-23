@@ -13,7 +13,7 @@ concurrency:
 jobs:
   play:
     runs-on: ubuntu-latest
-    timeout-minutes: 260
+    timeout-minutes: 245
     steps:
       - name: Check the bot token secret
         env:
@@ -56,7 +56,7 @@ jobs:
       - name: Join the tournament
         env:
           BOT_TOKEN: ${{ secrets.LICHESS_BOT_TOKEN_3 }}
-          TOURNAMENT_ID: "brBhnj34"
+          TOURNAMENT_ID: "Whpp1z2l"
         run: |
           for attempt in 1 2 3; do
             code=$(curl -s -o join.json -w "%{http_code}" -X POST "https://lichess.org/api/tournament/$TOURNAMENT_ID/join" -H "Authorization: Bearer $BOT_TOKEN")
@@ -66,16 +66,10 @@ jobs:
           done
 
       - name: Play chess
-        env:
-          TOURNAMENT_ID: "brBhnj34"
         working-directory: lichess-bot
         run: |
-          deadline=$(( $(date +%s) + 14760 ))
+          deadline=$(( $(date +%s) + 13800 ))
           while [ "$(date +%s)" -lt "$deadline" ]; do
-            if [ -n "$TOURNAMENT_ID" ] && curl -s "https://lichess.org/api/tournament/$TOURNAMENT_ID" | grep -qE 'isFinished"?[[:space:]]*:[[:space:]]*true'; then
-              echo "Tournament is over - stopping the bot"
-              break
-            fi
             remaining=$(( deadline - $(date +%s) ))
             timeout --signal=INT --kill-after=120 "$remaining" python lichess-bot.py -v || true
             sleep 10
