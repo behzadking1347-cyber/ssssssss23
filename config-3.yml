@@ -8,13 +8,13 @@ engine:
   ponder: true
   draw_or_resign:
     resign_enabled: true
-    offer_draw_enabled: true
+    offer_draw_enabled: false
   uci_options:
     Move Overhead: 500
     Threads: 2
     Hash: 256
     UCI_LimitStrength: true
-    UCI_Elo: 2890
+    UCI_Elo: 2800
     UCI_ShowWDL: true
 
 abort_time: 30
