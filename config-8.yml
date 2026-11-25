@@ -14,7 +14,7 @@ engine:
     Threads: 2
     Hash: 256
     UCI_LimitStrength: true
-    UCI_Elo: 2680
+    UCI_Elo: 2130
     UCI_ShowWDL: true
 
 abort_time: 30
