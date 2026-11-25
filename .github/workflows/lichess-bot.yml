@@ -56,7 +56,7 @@ jobs:
       - name: Join the tournament
         env:
           BOT_TOKEN: ${{ secrets.LICHESS_BOT_TOKEN }}
-          TOURNAMENT_ID: "Whpp1z2l"
+          TOURNAMENT_ID: "174Pos5K"
         run: |
           joined=""
           for attempt in 1 2 3; do
