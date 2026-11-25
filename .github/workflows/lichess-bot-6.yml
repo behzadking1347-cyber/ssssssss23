@@ -58,12 +58,17 @@ jobs:
           BOT_TOKEN: ${{ secrets.LICHESS_BOT_TOKEN_6 }}
           TOURNAMENT_ID: "Whpp1z2l"
         run: |
+          joined=""
           for attempt in 1 2 3; do
             code=$(curl -s -o join.json -w "%{http_code}" -X POST "https://lichess.org/api/tournament/$TOURNAMENT_ID/join" -H "Authorization: Bearer $BOT_TOKEN")
             echo "join attempt $attempt -> HTTP $code"; cat join.json; echo
-            if [ "$code" = "200" ] || [ "$code" = "400" ]; then break; fi
+            if [ "$code" = "200" ] || [ "$code" = "400" ]; then joined="yes"; break; fi
             sleep 20
           done
+          if [ -z "$joined" ]; then
+            echo "::error::auto join failed (HTTP $code) - check the tournament link and that the Lichess token has tournament:write"
+            exit 1
+          fi
 
       - name: Play chess
         working-directory: lichess-bot
