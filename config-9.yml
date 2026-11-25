@@ -14,7 +14,7 @@ engine:
     Threads: 2
     Hash: 256
     UCI_LimitStrength: true
-    UCI_Elo: 2500
+    UCI_Elo: 1900
     UCI_ShowWDL: true
 
 abort_time: 30
@@ -46,10 +46,8 @@ challenge:
   time_controls:
     - bullet
     - blitz
-    - rapid
   modes:
     - rated
-    - casual
   bullet_requires_increment: false
   max_simultaneous_games_per_user: 5
 
