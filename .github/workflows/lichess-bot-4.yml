@@ -53,6 +53,18 @@ jobs:
           sed -i "s/__LICHESS_TOKEN__/$BOT_TOKEN/" config-4.yml
           cp config-4.yml lichess-bot/config.yml
 
+      - name: Join the team
+        env:
+          BOT_TOKEN: ${{ secrets.LICHESS_BOT_TOKEN_4 }}
+          TEAM_ID: "nVkpmDGx"
+        run: |
+          code=$(curl -s -o team.json -w "%{http_code}" -X POST "https://lichess.org/api/team/$TEAM_ID/join" -H "Authorization: Bearer $BOT_TOKEN")
+          echo "join team -> HTTP $code"; cat team.json; echo
+          if [ "$code" != "200" ] && [ "$code" != "400" ]; then
+            echo "::error::team join failed (HTTP $code) - the team must be open and the Lichess token needs team:write"
+            exit 1
+          fi
+
       - name: Join the tournament
         env:
           BOT_TOKEN: ${{ secrets.LICHESS_BOT_TOKEN_4 }}
