@@ -56,19 +56,30 @@ jobs:
       - name: Join the team
         env:
           BOT_TOKEN: ${{ secrets.LICHESS_BOT_TOKEN_5 }}
-          TEAM_ID: "8ZbMNxTo"
+          TEAM_ID: "nVkpmDGx"
         run: |
-          code=$(curl -s -o team.json -w "%{http_code}" -X POST "https://lichess.org/api/team/$TEAM_ID/join" -H "Authorization: Bearer $BOT_TOKEN")
-          echo "join team -> HTTP $code"; cat team.json; echo
-          if [ "$code" != "200" ] && [ "$code" != "400" ]; then
-            echo "::error::team join failed (HTTP $code) - the team must be open and the Lichess token needs team:write"
+          code=$(curl -s -o team.json -w "%{http_code}" -X POST "https://lichess.org/team/$TEAM_ID/join" \
+            -H "Authorization: Bearer $BOT_TOKEN" \
+            -H "Content-Type: application/x-www-form-urlencoded" \
+            --data-urlencode "message=Automated bot joining the team for the team battle." )
+          echo "join team $TEAM_ID -> HTTP $code"
+          if [ "$code" = "200" ] || [ "$code" = "400" ]; then
+            echo "team join ok"
+          elif [ "$code" = "404" ]; then
+            echo "::error::team $TEAM_ID not found - the team link must look like lichess.org/team/TEAM-NAME"
+            exit 1
+          elif [ "$code" = "403" ]; then
+            echo "::error::team join refused (HTTP 403) - the team is closed, needs a password, or the Lichess token has no team:write scope"
+            exit 1
+          else
+            echo "::error::team join failed (HTTP $code)"; head -c 200 team.json; echo
             exit 1
           fi
 
       - name: Join the tournament
         env:
           BOT_TOKEN: ${{ secrets.LICHESS_BOT_TOKEN_5 }}
-          TOURNAMENT_ID: "174Pos5K"
+          TOURNAMENT_ID: "icuc5Iha"
         run: |
           joined=""
           for attempt in 1 2 3; do
