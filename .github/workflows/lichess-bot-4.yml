@@ -53,28 +53,38 @@ jobs:
           sed -i "s/__LICHESS_TOKEN__/$BOT_TOKEN/" config-4.yml
           cp config-4.yml lichess-bot/config.yml
 
+      - name: Check the Lichess token
+        env:
+          BOT_TOKEN: ${{ secrets.LICHESS_BOT_TOKEN_4 }}
+        run: |
+          code=$(curl -s -D headers.txt -o account.json -w "%{http_code}" -H "Authorization: Bearer $BOT_TOKEN" https://lichess.org/api/account || true)
+          if [ "$code" != "200" ]; then
+            echo "::error::the Lichess token is not valid (HTTP $code) - create a new token for this bot account with bot:play, team:write and tournament:write scopes"
+            exit 1
+          fi
+          echo "logged in as $(grep -o '"username":"[^"]*"' account.json | head -1 | cut -d'"' -f4)"
+          scopes=$(grep -i '^x-oauth-scopes:' headers.txt | cut -d' ' -f2- | tr -d '\r')
+          echo "token scopes: ${scopes:-unknown}"
+          if [ -n "$scopes" ] && ! echo "$scopes" | grep -q "team:write"; then
+            echo "::warning::this Lichess token has no team:write scope, so team join will be refused"
+          fi
+
       - name: Join the team
         env:
           BOT_TOKEN: ${{ secrets.LICHESS_BOT_TOKEN_4 }}
-          TEAM_ID: "piIznWvF"
+          TEAM_ID: "ahi-evran-universitesi-satranc-toplulugu"
         run: |
           code=$(curl -s -o team.json -w "%{http_code}" -X POST "https://lichess.org/team/$TEAM_ID/join" \
             -H "Authorization: Bearer $BOT_TOKEN" \
             -H "Content-Type: application/x-www-form-urlencoded" \
-            --data-urlencode "message=Automated bot joining the team for the team battle." )
-          echo "join team $TEAM_ID -> HTTP $code"
-          if [ "$code" = "200" ] || [ "$code" = "400" ]; then
-            echo "team join ok"
-          elif [ "$code" = "404" ]; then
-            echo "::error::team $TEAM_ID not found - the team link must look like lichess.org/team/TEAM-NAME"
-            exit 1
-          elif [ "$code" = "403" ]; then
-            echo "::error::team join refused (HTTP 403) - the team is closed, needs a password, or the Lichess token has no team:write scope"
-            exit 1
-          else
-            echo "::error::team join failed (HTTP $code)"; head -c 200 team.json; echo
-            exit 1
-          fi
+            --data-urlencode "message=Automated bot joining the team for the team battle." || true)
+          echo "join team $TEAM_ID -> HTTP $code"; head -c 200 team.json; echo
+          case "$code" in
+            200|400) echo "team join ok" ;;
+            403) echo "::warning::team join refused (HTTP 403) - the Lichess token of this bot needs the team:write scope, or the team only accepts invited members. The bot keeps running but its games will not count for the team." ;;
+            404) echo "::warning::team $TEAM_ID was not found - check the team link in the panel." ;;
+            *) echo "::warning::team join failed (HTTP $code) - the bot keeps running." ;;
+          esac
 
       - name: Join the tournament
         env:
@@ -83,14 +93,13 @@ jobs:
         run: |
           joined=""
           for attempt in 1 2 3; do
-            code=$(curl -s -o join.json -w "%{http_code}" -X POST "https://lichess.org/api/tournament/$TOURNAMENT_ID/join" -H "Authorization: Bearer $BOT_TOKEN")
-            echo "join attempt $attempt -> HTTP $code"; cat join.json; echo
+            code=$(curl -s -o join.json -w "%{http_code}" -X POST "https://lichess.org/api/tournament/$TOURNAMENT_ID/join" -H "Authorization: Bearer $BOT_TOKEN" || true)
+            echo "join attempt $attempt -> HTTP $code"; head -c 200 join.json; echo
             if [ "$code" = "200" ] || [ "$code" = "400" ]; then joined="yes"; break; fi
             sleep 20
           done
           if [ -z "$joined" ]; then
-            echo "::error::auto join failed (HTTP $code) - check the tournament link and that the Lichess token has tournament:write"
-            exit 1
+            echo "::warning::could not join the tournament (HTTP $code) - check the link and the tournament:write scope; in a team battle the bot must be a team member first. The bot keeps running."
           fi
 
       - name: Play chess
